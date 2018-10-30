@@ -15,15 +15,26 @@ while True:
     pupils, eyes = detect_pupils(gray, ret_eyes=True)
 
     for pup in pupils:
-        cv.circle(frame, (int(pup['x']), int(pup['y'])), int(pup['r']), (0, 0, 255), 3)
+        cv.circle(frame, (int(pup['x']), int(pup['y'])), int(pup['r']), (0, 0, 255), 2)
 
     for ex,ey,ew,eh in eyes:
         cv.rectangle(frame, (ex, ey), (ew+ex, eh+ey), (0, 0, 255))
 
     cv.imshow('frame', frame)
 
-    if cv.waitKey(1) & 0xFF == ord('q'):
+    key = cv.waitKey(1) & 0xFF
+    if key == ord('q'):
         break
+    # elif key == ord('c'):
+    #     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    #     pupils, eyes = detect_pupils(gray, ret_eyes=True)
+
+    #     for pup in pupils:
+    #         cv.circle(frame, (int(pup['x']), int(pup['y'])), int(pup['r']), (0, 0, 255), 3)
+
+    #     for ex,ey,ew,eh in eyes:
+    #         cv.rectangle(frame, (ex, ey), (ew+ex, eh+ey), (0, 0, 255))
+
 
 cap.release()
 cv.destroyAllWindows()

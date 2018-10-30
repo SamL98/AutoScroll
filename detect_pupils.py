@@ -19,7 +19,29 @@ from os.path import join
 import sys
 
 from haar_detector import *
-from vis_utils import circle
+from vis_utils import circle, rect
+
+def select_eyes(eyes, fw):
+    if len(eyes) == 2: return eyes
+
+    centers = [(ex+ew/2., ey+eh/2.) for (ex,ey,ew,eh) in eyes]
+    pairs, pair_idxes = [], []
+
+    ''' Sort each pair of eyes by how close to the same height they are '''
+    for i in range(len(centers)):
+        for j in range(i, len(centers)):
+            pairs.append(abs(centers[i][1]-centers[j][1]))
+            pair_idxes.append((i ,j))
+
+    ''' Return the pair of eyes which has the smallest y delta, given that their x delta is roughly 1/3 of the face width '''
+    for y_pair in np.argsort(pairs):
+        i, j = pair_idxes[y_pair]
+        delta_x = abs(fw/3. - abs(centers[i][0]-centers[j][0])) # assume that the eyes are roughly a third of the face width apart
+        if delta_x <= 25:
+            return [eyes[i], eyes[j]]
+    return []
+
+
 
 def weighted_size_for(blob, mx, my, h):
     rad = int(blob[2]*np.sqrt(2.))
@@ -41,21 +63,39 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
     ''' Detect the eyes in the image '''
     face = im[y:y+h, x:x+w]
     eyes = detect_eyes(face)
-    if len(eyes) != 2:
+    if len(eyes) > 2:
+        eyes = select_eyes(eyes, w)
+
+    if len(eyes) < 2:
         if ret_eyes: return [], []
         return []
 
     pupils = []
 
+    min_sigma_min = 1.25
+    min_sigma_max = 5.0
+    max_sigma_min = 8.0
+    max_sigma_max = 16.0
+    min_ratio = 1e-3
+    max_ratio = 1e-2
+
     for (ex, ey, ew, eh) in eyes:
+        p = 10 # padding since the OpenCV detected eyes usually contain a lot of surrounding mess
+        ex, ey = ex+p, ey+p
+        ew, eh = ew-2*p, eh-2*p
         eye = face[ey:ey+eh, ex:ex+ew]
+
+        ratio = ew*eh/(im.shape[0]*im.shape[1])
+        ratio_scaling_factor = max(0, ratio-min_ratio)/max_ratio
+        min_sigma = min_sigma_min + (min_sigma_max-min_sigma_min)*ratio_scaling_factor
+        max_sigma = max_sigma_min + (max_sigma_max-max_sigma_min)*ratio_scaling_factor
 
         ''' Preprocess the image '''
         eye = filters.median(eye, morph.disk(3)) # median filtering was found experimentally to improve results
         _, eye = cv.threshold(eye, np.percentile(eye.ravel(), 25), 255, cv.THRESH_BINARY_INV) # thresholding @ the 25th percentile results in a good blob canvas
 
         ''' Perform LoG spot detection on the eye patch '''
-        blobs = feat.blob_log(eye/255., min_sigma=1.25, max_sigma=8.0, num_sigma=15, threshold=0.5)
+        blobs = feat.blob_log(eye/255., min_sigma=min_sigma, max_sigma=max_sigma, num_sigma=15, threshold=0.5) # default is [1.25, 8.0]
 
         if len(blobs) == 0:
             print('No blobs found for eye')
@@ -69,7 +109,6 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
         '''             b) near-ish to the center of the eye                                                    '''
         sizes = np.array(list(map(lambda blob: weighted_size_for(blob, mx, my, h), blobs)))
         blob = blobs[np.argmax(sizes)]
-
         bx, by = blob[1], blob[0]
 
         if not rel_coords:
@@ -98,9 +137,9 @@ if __name__ == '__main__':
 
     #start = time()
 
-    im = cv.imread(join('frames', 'frame%d.png' % fno))
+    im = cv.imread(join('images', 'frame%d.png' % fno))
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-    pupils = detect_pupils(im)
+    pupils, eyes = detect_pupils(im, ret_eyes=True)
 
     #end = time()
     #print('Detection took %.4f seconds' % (end-start))
@@ -111,20 +150,10 @@ if __name__ == '__main__':
     faces = detect_faces(im)
     x,y,w,h = faces[0]
 
-    from vis_utils import rect
-    ax.add_patch(rect(x, y, w, h))
-
-    face = im[y:y+h, x:x+w]
-    eyes = detect_eyes(face)
+    for pup in pupils:
+        ax.add_patch(circle(pup['x'], pup['y'], pup['r']))
 
     for ex,ey,ew,eh in eyes:
-        ax.add_patch(rect(ex+x, ey+y, ew, eh))
-
-    for pup in pupils:
-        ax.add_patch(
-            Circle(
-                (pup['x'], pup['y']), pup['r'],
-                edgecolor='r', facecolor='None'
-            ))
+        ax.add_patch(rect(ex, ey, ew, eh))
 
     plt.show()
