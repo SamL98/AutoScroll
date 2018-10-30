@@ -18,9 +18,6 @@ from matplotlib.patches import Circle, Rectangle, Ellipse
 from os.path import join
 import sys
 
-from time import time
-from scipy.stats import mode
-
 from haar_detector import *
 from vis_utils import circle
 
@@ -63,12 +60,6 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
         if len(blobs) == 0:
             print('No blobs found for eye')
             continue
-
-        # _, ax = plt.subplots(1)
-        # ax.imshow(eye, 'gray')
-        # for blob in blobs:
-        #     ax.add_patch(circle(blob[0], blob[1], blob[2]*np.sqrt(2.)))
-        # plt.show()
 
         mx, my = ew/2., eh/2.
         h = (mx + my)/2.
