@@ -18,6 +18,9 @@ from matplotlib.patches import Circle, Rectangle, Ellipse
 from os.path import join
 import sys
 
+from time import time
+from scipy.stats import mode
+
 from haar_detector import *
 from vis_utils import circle
 
@@ -29,10 +32,11 @@ def weighted_size_for(blob, mx, my, h):
     dist = (np.sqrt((blob[0]-my)**2 + (blob[1]-mx)**2)/h)**2
     return size * max(1-dist, 0)
 
-def detect_pupils(im):
+def detect_pupils(im, ret_eyes=False, rel_coords=False):
     ''' Detect faces in the image. Hopefully there is only one face '''
     faces = detect_faces(im)
     if len(faces) != 1:
+        if ret_eyes: return [], []
         return []
 
     x, y, w, h = faces[0]
@@ -41,6 +45,7 @@ def detect_pupils(im):
     face = im[y:y+h, x:x+w]
     eyes = detect_eyes(face)
     if len(eyes) != 2:
+        if ret_eyes: return [], []
         return []
 
     pupils = []
@@ -48,28 +53,22 @@ def detect_pupils(im):
     for (ex, ey, ew, eh) in eyes:
         eye = face[ey:ey+eh, ex:ex+ew]
 
-        ''' Equalize the histogram of the eye patch and threshold it '''
-        eye = exposure.equalize_hist(eye)
+        ''' Preprocess the image '''
         eye = filters.median(eye, morph.disk(3)) # median filtering was found experimentally to improve results
-
-        ''' For each circle of radius 4 in the eye patch, check to see that it is mainly dark '''
-        ''' Do deteremine this, check to see if no more than 35% percent of the pixels within the circle are greater than 255/6 '''
-        mask = 1-morph.disk(3)
-        eye_tmp = np.pad(eye.copy(), 3, 'constant', constant_values=255)
-
-        for i in range(3, eye.shape[0]+1):
-            for j in range(3, eye.shape[1]+1):
-                patch = ma.masked_array(eye_tmp[i-3:i+3+1, j-3:j+3+1], mask)
-
-                if np.sum(patch <= 255/6.) <= int(0.65*np.count_nonzero(mask)): eye[i-3, j-3] = 0
-                else:                                                           eye[i-3, j-3] = 255
-
+        _, eye = cv.threshold(eye, np.percentile(eye.ravel(), 25), 255, cv.THRESH_BINARY_INV) # thresholding @ the 25th percentile results in a good blob canvas
 
         ''' Perform LoG spot detection on the eye patch '''
         blobs = feat.blob_log(eye/255., min_sigma=1.25, max_sigma=8.0, num_sigma=15, threshold=0.5)
 
         if len(blobs) == 0:
+            print('No blobs found for eye')
             continue
+
+        # _, ax = plt.subplots(1)
+        # ax.imshow(eye, 'gray')
+        # for blob in blobs:
+        #     ax.add_patch(circle(blob[0], blob[1], blob[2]*np.sqrt(2.)))
+        # plt.show()
 
         mx, my = ew/2., eh/2.
         h = (mx + my)/2.
@@ -80,11 +79,24 @@ def detect_pupils(im):
         sizes = np.array(list(map(lambda blob: weighted_size_for(blob, mx, my, h), blobs)))
         blob = blobs[np.argmax(sizes)]
 
+        bx, by = blob[1], blob[0]
+
+        if not rel_coords:
+            bx += x+ex
+            by += y+ey
+
         pupils.append({
-            'x': blob[1]+x+ex, 
-            'y': blob[0]+y+ey, 
+            'x': bx, 
+            'y': by, 
             'r': blob[2]*np.sqrt(2.)
         })
+
+    if ret_eyes:
+        eyes = list(map(
+            lambda eye: (x+eye[0], y+eye[1], eye[2], eye[3]),
+            eyes
+        ))
+        return pupils, eyes
 
     return pupils
 
@@ -93,12 +105,29 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         fno = int(sys.argv[1])
 
-    im = cv.imread(join('images', 'frame%d.png' % fno))
+    #start = time()
+
+    im = cv.imread(join('frames', 'frame%d.png' % fno))
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
     pupils = detect_pupils(im)
 
+    #end = time()
+    #print('Detection took %.4f seconds' % (end-start))
+
     _, ax = plt.subplots(1)
     ax.imshow(im, 'gray')
+
+    faces = detect_faces(im)
+    x,y,w,h = faces[0]
+
+    from vis_utils import rect
+    ax.add_patch(rect(x, y, w, h))
+
+    face = im[y:y+h, x:x+w]
+    eyes = detect_eyes(face)
+
+    for ex,ey,ew,eh in eyes:
+        ax.add_patch(rect(ex+x, ey+y, ew, eh))
 
     for pup in pupils:
         ax.add_patch(

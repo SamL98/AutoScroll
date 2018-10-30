@@ -8,19 +8,17 @@ from track_pupils import find_pupils
 
 cap = cv.VideoCapture(0)
 
-pupils = []
-
 while True:
     _, frame = cap.read()
 
-    if len(pupils) == 0:
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        pupils = detect_pupils(gray)
-    else:
-        pupils = find_pupils(frame, pupils)
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    pupils, eyes = detect_pupils(gray, ret_eyes=True)
 
     for pup in pupils:
         cv.circle(frame, (int(pup['x']), int(pup['y'])), int(pup['r']), (0, 0, 255), 3)
+
+    for ex,ey,ew,eh in eyes:
+        cv.rectangle(frame, (ex, ey), (ew+ex, eh+ey), (0, 0, 255))
 
     cv.imshow('frame', frame)
 
