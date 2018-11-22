@@ -1,0 +1,152 @@
+<!DOCTYPE <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>AutoScroll</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <div id="calibration-div">
+        <p id="calibration-instructions">Stare at the red dot for <span id="calibration-time">5</span> second(s)</p>
+        <svg id="calibration-dot" width="100" , height="100">
+            <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+        </svg>
+    </div>
+</body>
+</html>
+<script>
+    var debugMode = false;
+    if (debugMode) {
+        amtScrolled = [];
+    }
+
+    // send the collected scrolling info to the backend
+    function reportScrollInfo(scrollInfo) {
+        console.log('Reporting scroll info');
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'http://localhost:8080/scroll_info', true);
+        xhr.send(JSON.stringify(scrollInfo));
+    }
+
+    // send the dimensions of the current window to the capture program
+    function sendDims() {
+        let width = document.body.clientWidth,
+            height = document.body.clientHeight;
+        var url = 'http://localhost:8080/dimensions?'+
+                'width='+width+
+                '&height='+height;
+        console.log(url);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.send(null);
+    }
+
+    var calibrationStarted = false;
+
+    // tell the capture program to launch
+    function startCapture() {
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = () => {
+            if (!calibrationStarted) {
+                console.log('Capture started');
+
+                sendDims();
+
+                calibrationStarted = true;
+                calibrate();
+            }
+        }
+
+        var debug = debugMode == true ? 1 : 0;
+        xhr.open('GET', 'http://localhost:8080/start_capture?debug='+debug, false);
+        xhr.send(null);
+    }
+
+    // countdown from calibTimeLeft and show to PDF once time is up
+    function calibrate() {
+        var calibTimeLeft = 6;
+
+        function updateTimer() {
+            --calibTimeLeft;
+
+            if (calibTimeLeft == 0) {
+                clearInterval(calibTimer);
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'http://localhost:8080/finish_calibration', true);
+                xhr.send(null);
+
+                document.getElementById('calibration-div').remove();
+                displayPDF();
+            }
+
+            document.getElementById('calibration-time').innerHTML = calibTimeLeft;
+        }
+
+        var calibTimer = setInterval(updateTimer, 1000);
+    }
+
+    // display the PDF
+    function displayPDF() {
+        var obj = document.createElement('object');
+        obj.setAttribute('id', 'pdf-container');
+        obj.setAttribute('data', 'static/test.pdf');
+        obj.setAttribute('type', 'application/pdf');
+
+        var emb = document.createElement('embed');
+        emb.setAttribute('id', 'pdf-embed');
+        emb.setAttribute('data', 'static/test.pdf');
+        emb.setAttribute('type', 'application/pdf');
+
+        document.body.appendChild(obj);
+        obj.appendChild(emb);
+
+        // if we are debug mode (i.e. we want to train a regressor to scroll),
+        // add an event listener to keep track of how much the user scrolls
+        if (debugMode) {
+            window.addEventListener('wheel', (e) => {
+                amtScrolled.push({
+                    diff: e.deltaY,
+                    timestamp: Math.floor(Date.now()/1000)
+                });
+
+                if (amtScrolled.length >= 100) {
+                    reportScrollInfo(amtScrolled.slice());
+                    amtScrolled = [];
+                }
+            })
+        }
+    }
+
+    var onloadCalled = false;
+
+    window.onload = () => {
+        if (onloadCalled) return;
+        onloadCalled = true;
+
+        startCapture();
+
+        document.body.style.overflow = 'hidden';
+    }
+</script>
+<style>
+    #calibration-instructions {
+        text-align: center;
+        font-weight: 600;
+        font-size: 3em;
+        font-family: sans-serif;
+        padding-top: 25px;
+    }
+    #calibration-dot {
+        position: absolute;
+        top: 55%;
+        left: 48.5%;
+    }
+    #pdf-container {
+        width: 100%;
+        height: 100%;
+    }
+</style>

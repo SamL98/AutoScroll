@@ -1,25 +1,12 @@
 import numpy as np
-import numpy.ma as ma
 
-import skimage as sk
 import skimage.feature as feat
-import skimage.exposure as exposure
-import skimage.filters.rank as rank
 import skimage.filters as filters
 import skimage.morphology as morph
 
-from scipy.ndimage.filters import gaussian_filter
-
 import cv2 as cv
 
-import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Rectangle, Ellipse
-
-from os.path import join
-import sys
-
 from haar_detector import *
-from vis_utils import circle, rect
 
 def select_eyes(eyes, fw):
     if len(eyes) == 2: return eyes
@@ -39,9 +26,8 @@ def select_eyes(eyes, fw):
         delta_x = abs(fw/3. - abs(centers[i][0]-centers[j][0])) # assume that the eyes are roughly a third of the face width apart
         if delta_x <= 25:
             return [eyes[i], eyes[j]]
+
     return []
-
-
 
 def weighted_size_for(blob, mx, my, h):
     rad = int(blob[2]*np.sqrt(2.))
@@ -72,15 +58,15 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
 
     pupils = []
 
-    min_sigma_min = 1.25
-    min_sigma_max = 5.0
-    max_sigma_min = 8.0
-    max_sigma_max = 16.0
+    min_sigma_min = 2.5#1.25
+    min_sigma_max = 3.0#5.0
+    max_sigma_min = 5.0#8.0
+    max_sigma_max = 10.0#16.0
     min_ratio = 1e-3
     max_ratio = 1e-2
 
-    for (ex, ey, ew, eh) in eyes:
-        p = 10 # padding since the OpenCV detected eyes usually contain a lot of surrounding mess
+    for i, (ex, ey, ew, eh) in enumerate(eyes):
+        p = min(15, min(ew, eh)//3) # padding since the OpenCV detected eyes usually contain a lot of surrounding mess
         ex, ey = ex+p, ey+p
         ew, eh = ew-2*p, eh-2*p
         eye = face[ey:ey+eh, ex:ex+ew]
@@ -95,7 +81,11 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
         _, eye = cv.threshold(eye, np.percentile(eye.ravel(), 25), 255, cv.THRESH_BINARY_INV) # thresholding @ the 25th percentile results in a good blob canvas
 
         ''' Perform LoG spot detection on the eye patch '''
-        blobs = feat.blob_log(eye/255., min_sigma=min_sigma, max_sigma=max_sigma, num_sigma=15, threshold=0.5) # default is [1.25, 8.0]
+        blobs = feat.blob_log(eye/255., 
+                            min_sigma=min_sigma, 
+                            max_sigma=max_sigma, 
+                            num_sigma=15, 
+                            threshold=0.5) # default is [1.25, 8.0]
 
         if len(blobs) == 0:
             print('No blobs found for eye')
@@ -107,7 +97,10 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
         ''' Pick the blob that has the largest weighted size. This assumes that the pupil is likely to be both: '''
         '''             a) large-ish in size, and                                                               '''
         '''             b) near-ish to the center of the eye                                                    '''
-        sizes = np.array(list(map(lambda blob: weighted_size_for(blob, mx, my, h), blobs)))
+        sizes = np.array(list(map(lambda blob: weighted_size_for(blob, 
+                                                                mx, 
+                                                                my, 
+                                                                h), blobs)))
         blob = blobs[np.argmax(sizes)]
         bx, by = blob[1], blob[0]
 
@@ -131,13 +124,20 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
     return pupils
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle, Rectangle, Ellipse
+    from vis_utils import circle, rect
+
+    from os.path import join
+    import sys
+
     fno = 2
     if len(sys.argv) > 1:
         fno = int(sys.argv[1])
 
     #start = time()
 
-    im = cv.imread(join('images', 'frame%d.png' % fno))
+    im = cv.imread(join('images', 'frame%d.jpg' % fno))
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
     pupils, eyes = detect_pupils(im, ret_eyes=True)
 

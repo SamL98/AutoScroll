@@ -1,3 +1,6 @@
 /gt_db/
 /video/
 /frames/
+/images/
+/.vscode/
+/__pycache__/
