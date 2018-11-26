@@ -65,13 +65,8 @@ def scroll():
  
 @app.route('/start_capture')
 def start():
-    global capture_prog, run_w_debug
-
-    run_w_debug = int(request.args.get('debug'))
-    capture_prog = subprocess.Popen(['python', 'capture_scroll.py', str(run_w_debug)])
-
-    #time.sleep(1.5)
-
+    global capture_prog
+    capture_prog = subprocess.Popen(['python', 'capture_scroll.py'])
     return 'success', 200
 
 @app.route('/finish_calibration')

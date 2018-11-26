@@ -9,7 +9,7 @@ Created on Wed Nov 21 21:22:58 2018
 import cv2
 
 
-def init_tracker(init_bb, tracker_name, frame, target, orig):
+def init_tracker(init_bb, tracker_name, frame, target):
     tracker_dict = {
         "csrt": cv2.TrackerCSRT_create,
         "kcf": cv2.TrackerKCF_create,
@@ -31,19 +31,16 @@ def init_tracker(init_bb, tracker_name, frame, target, orig):
     
     tracker = tracker_dict[tracker_name]()
     if target == 'pupil':
-        #bb = circle2bb(init_bb[0]-orig[0], init_bb[1]-orig[1], init_bb[2])
         bb = circle2bb(init_bb[0], init_bb[1], init_bb[2])
     else:
-        #bb = ellipse2bb(init_bb[0]-orig[0], init_bb[1]-orig[1], init_bb[2], init_bb[3])
         bb = ellipse2bb(init_bb[0], init_bb[1], init_bb[2], init_bb[3])
     
     tracker.init(frame, bb)
     return tracker
 
 
-def track(tracker, frame, target, orig):
+def track(tracker, frame, target):
     (success, bb) = tracker.update(frame)    
-    #return (int(bb[0]+orig[0]), int(bb[1]+orig[1]), int(bb[2]), int(bb[3]))
     return (int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3]))
 
 
