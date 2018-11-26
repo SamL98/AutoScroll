@@ -67,7 +67,7 @@
 
     // countdown from calibTimeLeft and show to PDF once time is up
     function calibrate() {
-        var calibTimeLeft = 6;
+        var calibTimeLeft = 5;
 
         function updateTimer() {
             --calibTimeLeft;
@@ -103,6 +103,11 @@
 
         document.body.appendChild(obj);
         obj.appendChild(emb);
+
+        // var text = document.createElement('textarea');
+        // text.setAttribute('id', 'text-container');
+        // text.innerHTML = 'This is a long line of text used as a test for AutoScroll, our final project for CSE 5524. If you look to the left, the display should automatically scroll to the left to accomodate you eyes. If you look to the right, the display should conversely move to the right. Simple. Elegant. Effective...                At least that was the goal. In reality, tracking pupils is more than a two week job. Our system not only does not have the most accurate pupil detection/tracking, but we were unable to develop the best mapping from pupil movement to scrolling.';
+        // document.body.appendChild(text);
 
         // if we are debug mode (i.e. we want to train a regressor to scroll),
         // add an event listener to keep track of how much the user scrolls
@@ -142,11 +147,26 @@
     }
     #calibration-dot {
         position: absolute;
-        top: 55%;
+        top: 42.5%;
         left: 48.5%;
     }
     #pdf-container {
         width: 100%;
         height: 100%;
+    }
+    #text-container {
+        width: 100%;
+        height: 100%;
+        overflow-x: scroll;
+        font-weight: 500;
+        font-size: 3.25em;
+        font-family: sans-serif;
+        padding-top: 28.5%;
+        text-align: left;
+        padding-left: 25px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        white-space: nowrap;
     }
 </style>

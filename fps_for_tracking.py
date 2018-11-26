@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import time
 
 
-def get_fps(img, box_coor, feature_opt):
+def get_fps(gray, box_coor, feature_opt):
     '''
     inputs:
     img: img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) , img = cv2.imread(filename)
@@ -13,8 +13,8 @@ def get_fps(img, box_coor, feature_opt):
     fps_coor: (r_l, c_l, r_r, c_r)
     '''
     rt, ct, rb, cb = box_coor
-    img_s = img[rt:rb, ct:cb,:].copy()
-    gray = cv2.cvtColor(img_s, cv2.COLOR_RGB2GRAY)
+    gray = gray[rt:rb, ct:cb]
+
     if feature_opt=='surf':
         surf = cv2.xfeatures2d.SURF_create()
         kps, _ = surf.detectAndCompute(gray, None)

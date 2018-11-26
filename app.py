@@ -20,6 +20,16 @@ run_w_debug = 0
 def index():
     return app.send_static_file('index.html')
 
+@app.route('/test')
+def test():
+    return app.send_static_file('test.html')
+
+@app.route('/test_data')
+def test_data():
+    with open('test_data.txt') as f:
+        js = json.loads(f.read())
+    return js, 200
+
 @app.route('/dimensions')
 def dims():
     global capture_prog, dim_sig_sent
@@ -38,7 +48,7 @@ def dims():
         f.write(json.dumps(dims))
 
     if not dim_sig_sent:
-        capture_prog.send_signal(signal.SIGUSR2)
+        capture_prog.send_signal(signal.SIGUSR1)
         dim_sig_sent = True
 
     return 'success', 200
@@ -60,7 +70,7 @@ def start():
     run_w_debug = int(request.args.get('debug'))
     capture_prog = subprocess.Popen(['python', 'capture_scroll.py', str(run_w_debug)])
 
-    time.sleep(0.5)
+    #time.sleep(1.5)
 
     return 'success', 200
 

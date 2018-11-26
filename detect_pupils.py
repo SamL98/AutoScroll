@@ -37,11 +37,12 @@ def weighted_size_for(blob, mx, my, h):
     dist = (np.sqrt((blob[0]-my)**2 + (blob[1]-mx)**2)/h)**2
     return size * max(1-dist, 0)
 
-def detect_pupils(im, ret_eyes=False, rel_coords=False):
+def detect_pupils(im, ret_eyes=False, ret_face=False, rel_coords=False):
     ''' Detect faces in the image. Hopefully there is only one face '''
     faces = detect_faces(im)
     if len(faces) != 1:
-        if ret_eyes: return [], []
+        if ret_eyes and ret_face: return [], [], []
+        elif ret_eyes or ret_face: return [], []
         return []
 
     x, y, w, h = faces[0]
@@ -53,17 +54,18 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
         eyes = select_eyes(eyes, w)
 
     if len(eyes) < 2:
-        if ret_eyes: return [], []
+        if ret_eyes and ret_face: return [], [], []
+        elif ret_eyes or ret_face: return [], []
         return []
 
     pupils = []
 
-    min_sigma_min = 2.5#1.25
-    min_sigma_max = 3.0#5.0
-    max_sigma_min = 5.0#8.0
-    max_sigma_max = 10.0#16.0
-    min_ratio = 1e-3
-    max_ratio = 1e-2
+    # min_sigma_min = 2.5#1.25
+    # min_sigma_max = 3.0#5.0
+    # max_sigma_min = 5.0#8.0
+    # max_sigma_max = 10.0#16.0
+    # min_ratio = 1e-3
+    # max_ratio = 1e-2
 
     for i, (ex, ey, ew, eh) in enumerate(eyes):
         p = min(15, min(ew, eh)//3) # padding since the OpenCV detected eyes usually contain a lot of surrounding mess
@@ -71,10 +73,11 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
         ew, eh = ew-2*p, eh-2*p
         eye = face[ey:ey+eh, ex:ex+ew]
 
-        ratio = ew*eh/(im.shape[0]*im.shape[1])
-        ratio_scaling_factor = max(0, ratio-min_ratio)/max_ratio
-        min_sigma = min_sigma_min + (min_sigma_max-min_sigma_min)*ratio_scaling_factor
-        max_sigma = max_sigma_min + (max_sigma_max-max_sigma_min)*ratio_scaling_factor
+        # ratio = ew*eh/(im.shape[0]*im.shape[1])
+        # ratio_scaling_factor = max(0, ratio-min_ratio)/max_ratio
+        # min_sigma = min_sigma_min + (min_sigma_max-min_sigma_min)*ratio_scaling_factor
+        # max_sigma = max_sigma_min + (max_sigma_max-max_sigma_min)*ratio_scaling_factor
+        min_sigma, max_sigma = 1.25, 13.5
 
         ''' Preprocess the image '''
         eye = filters.median(eye, morph.disk(3)) # median filtering was found experimentally to improve results
@@ -119,7 +122,13 @@ def detect_pupils(im, ret_eyes=False, rel_coords=False):
             lambda eye: (x+eye[0], y+eye[1], eye[2], eye[3]),
             eyes
         ))
+
+    if ret_eyes and ret_face:
+        return pupils, eyes, faces[0]
+    elif ret_eyes:
         return pupils, eyes
+    elif ret_face:
+        return pupils, face
 
     return pupils
 
@@ -137,7 +146,7 @@ if __name__ == '__main__':
 
     #start = time()
 
-    im = cv.imread(join('images', 'frame%d.jpg' % fno))
+    im = cv.imread(join('images', 'frame%d.png' % fno))
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
     pupils, eyes = detect_pupils(im, ret_eyes=True)
 
@@ -154,6 +163,9 @@ if __name__ == '__main__':
         ax.add_patch(circle(pup['x'], pup['y'], pup['r']))
 
     for ex,ey,ew,eh in eyes:
+        #kps = cv.FastFeatureDetector_create().detect(im[ey:ey+eh, ex:ex+ew], None)
+        #ax.scatter([kp.pt[0]+ex for kp in kps], [kp.pt[1]+ey for kp in kps])
+
         ax.add_patch(rect(ex, ey, ew, eh))
 
     plt.show()

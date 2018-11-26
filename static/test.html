@@ -1,0 +1,108 @@
+<!DOCTYPE <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>AutoScroll</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <div id="calibration-div">
+        <p id="calibration-instructions">Stare at the red dot for <span id="calibration-time">5</span> second(s)</p>
+        <svg id="calibration-dot" width="100" , height="100">
+            <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+        </svg>
+    </div>
+</body>
+</html>
+<script>
+    // display the PDF
+    function displayPDF() {
+        var text = document.createElement('textarea');
+        text.setAttribute('id', 'text-container');
+        text.innerHTML = 'This is a long line of text used as a test for AutoScroll, our final project for CSE 5524. If you look to the left, the display should automatically scroll to the left to accomodate you eyes. If you look to the right, the display should conversely move to the right. Simple. Elegant. Effective...                At least that was the goal. In reality, tracking pupils is more than a two week job. Our system not only does not have the most accurate pupil detection/tracking, but we were unable to develop the best mapping from pupil movement to scrolling.';
+        document.body.appendChild(text);
+    }
+
+    function getData() {
+        var xhr = XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+            let data = JSON.parse(xhr.responseText);
+            showData(data);
+        }
+
+        xhr.open('GET', 'http://localhost:8080/test_data', true);
+        xhr.send(null);
+    }
+
+    function showData(data) {
+        let svg = document.createElement('svg');
+        svg.setAttribute('width', 100);
+        svg.setAttribute('height', 100);
+        svg.style['padding-left'] = (document.body.clientWidth/2-100)+'px';
+        document.getElementById('text-container').appendChild(svg);
+
+        let circ = document.createElement('circle');
+        circ.setAttribute('cx', 50);
+        circ.setAttribute('cy', 50);
+        circ.setAttribute('r', 40);
+        circ.setAttribute('stroke', 'black');
+        circ.setAttribute('stroke-width', '3');
+        circ.setAttribute('fill', 'red');
+        svg.appendChild(circ);
+
+        for (var i=0; i<data.length; i++) {
+            let offset = data[i]/document.body.clientWidth;
+            let curr = parseInt(svg.style['padding-left'].substring(0, svg.style['padding-left'].indexOf('px')));
+
+            setTimeout(() => {
+                svg.style['padding-left'] = (curr + offset) + 'px';
+            }, 500);
+        }
+    }
+
+    var onloadCalled = false;
+
+    window.onload = () => {
+        if (onloadCalled) return;
+        onloadCalled = true;
+
+        displayPDF();
+        getData();
+
+        document.body.style.overflow = 'hidden';
+    }
+</script>
+<style>
+    #calibration-instructions {
+        text-align: center;
+        font-weight: 600;
+        font-size: 3em;
+        font-family: sans-serif;
+        padding-top: 25px;
+    }
+    #calibration-dot {
+        position: absolute;
+        top: 37.5%;
+        left: 48.5%;
+    }
+    #pdf-container {
+        width: 100%;
+        height: 100%;
+    }
+    #text-container {
+        width: 100%;
+        height: 100%;
+        overflow-x: scroll;
+        font-weight: 500;
+        font-size: 3.25em;
+        font-family: sans-serif;
+        padding-top: 28.5%;
+        text-align: left;
+        padding-left: 25px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        white-space: nowrap;
+    }
+</style>

@@ -7,7 +7,7 @@ from haar_detector import detect_faces, detect_eyes
 
 cap = cv.VideoCapture(0)
 
-i = 1
+i = 4
 
 while True:
     _, frame = cap.read()
