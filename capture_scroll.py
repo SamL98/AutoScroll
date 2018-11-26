@@ -151,8 +151,7 @@ def perform_capture():
                         te2 = init_tracker((ex + ew//2, p1['y'], ew, 2*oy2),
                                             'csrt', 
                                             frame, 
-                                            'eye',
-                                            (x, y))
+                                            'eye')
                         tp2 = init_tracker((p2['x'], p2['y'], p2['r']), 
                                             'csrt', 
                                             frame, 
@@ -222,6 +221,7 @@ def perform_capture():
             # The scroll amount is also negated since positive y-delta's
             # correspond to downward movement but positive scroll amounts
             # correspond to upwards scrolling.
+
             mean_delta = (delta_y1+delta_y2)/2.
             scroll_amt = -(mean_delta)/height*1000
             gui.vscroll(scroll_amt)
