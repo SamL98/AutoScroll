@@ -104,6 +104,38 @@
         document.body.appendChild(obj);
         obj.appendChild(emb);
 
+        var eyeCont = document.createElement('svg');
+        eyeCont.setAttribute('id', 'eye-container');
+        eyeCont.setAttribute('width', '300');
+        eyeCont.setAttribute('height', '100');
+        eyeCont.style.zIndex = 9999;
+        eyeCont.style.top = (Math.round(window.clientHeight*0.425)-50)+'px';
+
+        var leftEye = document.createElement('circle');
+        leftEye.setAttribute('cx', '50');
+        leftEye.setAttribute('cy', '50');
+        leftEye.setAttribute('stroke', 'red');
+        leftEye.setAttribute('fill', 'none');
+        leftEye.setAttribute('stroke-width', '3');
+
+        var rightEye = document.createElement('circle');
+        rightEye.setAttribute('cx', '50');
+        rightEye.setAttribute('cy', '50');
+        rightEye.setAttribute('stroke', 'red');
+        rightEye.setAttribute('fill', 'none');
+        rightEye.setAttribute('stroke-width', '3');
+
+        eyeCont.appendChild(leftEye);
+        eyeCont.appendChild(rightEye);
+        document.body.appendChild(eyeCont);
+
+        var lastY = Math.round(window.clientHeight * 0.425) - 50;
+        window.addEventListener('wheel', (e) => {
+            let h = window.clientHeight;
+            let scrollAmt = e.deltaY/h;
+            document.getElementById('eye-container').style.top = Math.max(50/h, Math.min(lastY+scrollAmt, 1-50/h));
+        })
+
         // var text = document.createElement('textarea');
         // text.setAttribute('id', 'text-container');
         // text.innerHTML = 'This is a long line of text used as a test for AutoScroll, our final project for CSE 5524. If you look to the left, the display should automatically scroll to the left to accomodate you eyes. If you look to the right, the display should conversely move to the right. Simple. Elegant. Effective...                At least that was the goal. In reality, tracking pupils is more than a two week job. Our system not only does not have the most accurate pupil detection/tracking, but we were unable to develop the best mapping from pupil movement to scrolling.';
@@ -168,5 +200,9 @@
         top: 0;
         left: 0;
         white-space: nowrap;
+    }
+    #eye-container {
+        position: absolute;
+        left: 25%;
     }
 </style>

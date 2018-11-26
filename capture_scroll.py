@@ -27,7 +27,7 @@ from fps_for_tracking import get_fps
 from tracking import *
 
 calibration_done = False    # flag to set to True once the calibration period has elapsed
-display = False             # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
+display = False               # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
 height, width = None, None  # the height and width of the window that the web interface is in 
 
 def read_dimensions(signum, frame):
@@ -157,8 +157,8 @@ def perform_capture():
                                             frame, 
                                             'pupil')
 
-                        init_y1 = p1['y']
-                        init_y2 = p2['y']
+                        init_y1 = p1['y']#-eyes[0][1]
+                        init_y2 = p2['y']#-eyes[1][1]
                     else:
                         # Otherwise, update prev_p1 and
                         # prev_p2 and keep on chugging.
@@ -194,7 +194,8 @@ def perform_capture():
                 #       (x origin, y origin, x width, y height)
                 # So to determine the new y position, add half the height
                 # to the origin.
-                new_y1 = (p1[1]+p1[3]/2)
+
+                new_y1 = (p1[1]+p1[3]/2)#-ey
                 delta_y1 = new_y1-init_y1
 
                 ex,ey,ew,eh = track(te2, frame, 'eye')
@@ -204,27 +205,27 @@ def perform_capture():
                     draw_ellipse(frame, (ex, ey, ew//2, eh//2))
                     draw_circle(frame, p2)
 
-                new_y2 = (p2[1]+p2[3]/2)
+                new_y2 = (p2[1]+p2[3]/2)#-ey
                 delta_y2 = new_y2-init_y2
 
                 if display:
                     for p in pupils:
                         cv.circle(frame, (int(p['x']), int(p['y'])), int(p['r']), (0, 255, 0), 2)
 
-            # To determine the amount to scroll, take the average
-            # of the two y-deltas and scale it by the viewport height/1000.
-            # 
-            # The viewport height scaling factor is used because of the 
-            # typical pixel height of my web browser. This would need
-            # to be changed for different viewports.
-            #
-            # The scroll amount is also negated since positive y-delta's
-            # correspond to downward movement but positive scroll amounts
-            # correspond to upwards scrolling.
+                # To determine the amount to scroll, take the average
+                # of the two y-deltas and scale it by the viewport height/1000.
+                # 
+                # The viewport height scaling factor is used because of the 
+                # typical pixel height of my web browser. This would need
+                # to be changed for different viewports.
+                #
+                # The scroll amount is also negated since positive y-delta's
+                # correspond to downward movement but positive scroll amounts
+                # correspond to upwards scrolling.
 
-            mean_delta = (delta_y1+delta_y2)/2.
-            scroll_amt = -(mean_delta)/height*1000
-            gui.vscroll(scroll_amt)
+                mean_delta = (delta_y1+delta_y2)/2.
+                scroll_amt = -(mean_delta)/height*1000
+                gui.vscroll(scroll_amt)
 
             if display:
                 cv.imshow('frame', frame)
