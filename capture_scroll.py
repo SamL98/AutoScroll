@@ -22,9 +22,6 @@ from time import time, sleep
 import json
 from os.path import isfile
 
-#from multiprocessing.connection import Client
-from Quartz.CoreGraphics import CGEventCreateScrollWheelEvent, CGEventPost, kCGHIDEventTap
-import multiprocessing as mp
 from multiprocessing.connection import Client
 import subprocess
 
@@ -36,38 +33,6 @@ from tracking import *
 calibration_done = None    # flag to set to True once the calibration period has elapsed
 display = True               # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
 height, width = None, None  # the height and width of the window that the web interface is in 
-
-def scroll(scroll_amt, step, amt_scrolled, done):
-    sa = scroll_amt.value
-    amt = amt_scrolled.value
-    sval = step.value
-
-    if sa == 0:
-        return
-
-    print(sa)
-
-    #step = int(sa/abs(sa))
-    #amt_scrolled = 0
-
-    orig_sa = sa+0.0
-
-    while amt < abs(sa):
-        sleep(.005)
-
-        multiplier = 1 - (float(amt+1) / sa)
-        speed = 4*multiplier*sval#step
-        event = CGEventCreateScrollWheelEvent(None, 0, 1, speed)
-        CGEventPost(kCGHIDEventTap, event)
-
-        amt += 1
-        if sa != orig_sa:
-            print(orig_sa, sa)
-
-    with done.get_lock():
-        done.value = 1
-    return
-
 
 def start_calibration(signum, frame):
     global calibration_done
@@ -110,9 +75,7 @@ def perform_capture():
     T = 3                           # threshold distance that each pupil must have moved less
                                     # than between frames to be considered calibrated
 
-    # scrolling_up = False
-    # scroll_proc = None
-    # done = None
+    t = .5
 
     conn = Client(('localhost', 6000), authkey=b'password')
     
@@ -281,35 +244,11 @@ def perform_capture():
 
                 mean_delta = (delta_y1+delta_y2)/2.
                 scroll_amt = -(mean_delta)/height*2000
-                conn.send('scroll:' + str(scroll_amt))
 
-                # now_is_scrolling_up = scroll_amt > 0
-
-                # if (not scroll_proc is None) and (not done is None) and (done.value == 1):
-                #     scroll_proc.join()
-                #     scroll_proc = None
-
-                # if scroll_proc is None:
-                #     scroll_val = mp.Value('f', scroll_amt)
-                #     amt_scrolled = mp.Value('i', 0)
-                #     step = mp.Value('i', 1)
-                #     done = mp.Value('i', 0)
-
-                #     scroll_proc = mp.Process(target=scroll, args=(scroll_val, amt_scrolled, step, done))
-                #     scroll_proc.start()
-
-                # else:
-                #     if now_is_scrolling_up != scrolling_up:
-                #         scrolling_up = now_is_scrolling_up
-
-                #         with amt_scrolled.get_lock():
-                #             with step.get_lock():
-                #                 amt_scrolled.value = 0
-                #                 step.value *= -1
-                    
-                #     else:
-                #         with scroll_val.get_lock():
-                #             scroll_val.value += scroll_amt
+                if abs(scroll_amt) > t:
+                    if scroll_amt > 0:
+                        scroll_amt *= 2
+                    conn.send('scroll:' + str(scroll_amt))
 
                 #gui.vscroll(scroll_amt)
 
@@ -321,10 +260,9 @@ def perform_capture():
         if key == ord('q'):
             break
 
-    # if not scroll_proc is None:
-    #     scroll_proc.join()
     conn.send('close')
     conn.close()
+
     cv.destroyAllWindows()
     cap.release()
 
