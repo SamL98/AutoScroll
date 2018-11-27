@@ -8,7 +8,7 @@
 </head>
 <body>
     <div id="calibration-div">
-        <p id="calibration-instructions">Stare at the red dot for <span id="calibration-time">5</span> second(s)</p>
+        <p id="calibration-instructions">Stare at the red dot for <span id="calibration-time">3</span> second(s)</p>
         <svg id="calibration-dot" width="100" , height="100">
             <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
         </svg>
@@ -44,11 +44,19 @@
         xhr.send(null);
     }
 
+    function startButtonClicked() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'http://localhost:8080/start_calib', true);
+        xhr.send(null);
+
+        calibrate();
+    }
+    
     var calibrationStarted = false;
 
     // tell the capture program to launch
     function startCapture() {
-        var xhr = new XMLHttpRequest()
+        var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = () => {
             if (!calibrationStarted) {
                 console.log('Capture started');
@@ -56,7 +64,13 @@
                 sendDims();
 
                 calibrationStarted = true;
-                calibrate();
+                //calibrate();
+
+                var btn = document.createElement('button');
+                btn.setAttribute('id', 'start-btn');
+                btn.setAttribute('onclick', 'startButtonClicked()');
+                btn.innerHTML = 'Start';
+                document.getElementById('calibration-div').appendChild(btn);
             }
         }
 
@@ -67,7 +81,7 @@
 
     // countdown from calibTimeLeft and show to PDF once time is up
     function calibrate() {
-        var calibTimeLeft = 5;
+        var calibTimeLeft = 3;
 
         function updateTimer() {
             --calibTimeLeft;
@@ -104,37 +118,37 @@
         document.body.appendChild(obj);
         obj.appendChild(emb);
 
-        var eyeCont = document.createElement('svg');
-        eyeCont.setAttribute('id', 'eye-container');
-        eyeCont.setAttribute('width', '300');
-        eyeCont.setAttribute('height', '100');
-        eyeCont.style.zIndex = 9999;
-        eyeCont.style.top = (Math.round(window.clientHeight*0.425)-50)+'px';
+        // var eyeCont = document.createElement('svg');
+        // eyeCont.setAttribute('id', 'eye-container');
+        // eyeCont.setAttribute('width', '300');
+        // eyeCont.setAttribute('height', '100');
+        // eyeCont.style.zIndex = 9999;
+        // eyeCont.style.top = (Math.round(document.body.clientHeight*0.425)-50)+'px';
 
-        var leftEye = document.createElement('circle');
-        leftEye.setAttribute('cx', '50');
-        leftEye.setAttribute('cy', '50');
-        leftEye.setAttribute('stroke', 'red');
-        leftEye.setAttribute('fill', 'none');
-        leftEye.setAttribute('stroke-width', '3');
+        // var leftEye = document.createElement('circle');
+        // leftEye.setAttribute('cx', '50');
+        // leftEye.setAttribute('cy', '50');
+        // leftEye.setAttribute('stroke', 'red');
+        // leftEye.setAttribute('fill', 'none');
+        // leftEye.setAttribute('stroke-width', '3');
 
-        var rightEye = document.createElement('circle');
-        rightEye.setAttribute('cx', '50');
-        rightEye.setAttribute('cy', '50');
-        rightEye.setAttribute('stroke', 'red');
-        rightEye.setAttribute('fill', 'none');
-        rightEye.setAttribute('stroke-width', '3');
+        // var rightEye = document.createElement('circle');
+        // rightEye.setAttribute('cx', '50');
+        // rightEye.setAttribute('cy', '50');
+        // rightEye.setAttribute('stroke', 'red');
+        // rightEye.setAttribute('fill', 'none');
+        // rightEye.setAttribute('stroke-width', '3');
 
-        eyeCont.appendChild(leftEye);
-        eyeCont.appendChild(rightEye);
-        document.body.appendChild(eyeCont);
+        // eyeCont.appendChild(leftEye);
+        // eyeCont.appendChild(rightEye);
+        // document.body.appendChild(eyeCont);
 
-        var lastY = Math.round(window.clientHeight * 0.425) - 50;
-        window.addEventListener('wheel', (e) => {
-            let h = window.clientHeight;
-            let scrollAmt = e.deltaY/h;
-            document.getElementById('eye-container').style.top = Math.max(50/h, Math.min(lastY+scrollAmt, 1-50/h));
-        })
+        // window.addEventListener('wheel', (e) => {
+        //     let h = document.body.clientHeight;
+        //     let scrollAmt = e.deltaY/h;
+        //     let lastY = Math.round(h * 0.425) - 50;
+        //     document.getElementById('eye-container').style.top = Math.max(50/h, Math.min(lastY+scrollAmt, 1-50/h)) + 'px';
+        // });
 
         // var text = document.createElement('textarea');
         // text.setAttribute('id', 'text-container');
@@ -204,5 +218,11 @@
     #eye-container {
         position: absolute;
         left: 25%;
+    }
+    #start-btn {
+        margin-left: 45%;
+        margin-top: 50%;
+        width: 10%;
+        font-size: 2.5em;
     }
 </style>

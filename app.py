@@ -14,6 +14,7 @@ app = Flask(__name__)
 capture_prog = None
 finish_sig_sent = False
 dim_sig_sent = False
+calib_sig_sent = False
 run_w_debug = 0
 
 @app.route('/')
@@ -50,6 +51,19 @@ def dims():
     if not dim_sig_sent:
         capture_prog.send_signal(signal.SIGUSR1)
         dim_sig_sent = True
+
+    return 'success', 200
+
+@app.route('/start_calib')
+def start_calib():
+    global calib_sig_sent
+
+    if capture_prog is None:
+        return 'failure', 500
+
+    if not calib_sig_sent:
+        capture_prog.send_signal(signal.SIGUSR2)
+        calib_sig_sent = True
 
     return 'success', 200
 

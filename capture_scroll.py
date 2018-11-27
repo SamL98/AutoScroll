@@ -15,20 +15,63 @@
 
 import cv2 as cv
 import numpy as np
-import pyautogui as gui
+#import pyautogui as gui
 import sys
 import signal
-from time import time
+from time import time, sleep
 import json
 from os.path import isfile
+
+#from multiprocessing.connection import Client
+from Quartz.CoreGraphics import CGEventCreateScrollWheelEvent, CGEventPost, kCGHIDEventTap
+import multiprocessing as mp
+from multiprocessing.connection import Client
+import subprocess
 
 from detect_pupils import detect_pupils
 from fps_for_tracking import get_fps
 from tracking import *
+#from scroller import is_scrolling, change_scroll_amt, scroll_by
 
-calibration_done = False    # flag to set to True once the calibration period has elapsed
-display = False               # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
+calibration_done = None    # flag to set to True once the calibration period has elapsed
+display = True               # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
 height, width = None, None  # the height and width of the window that the web interface is in 
+
+def scroll(scroll_amt, step, amt_scrolled, done):
+    sa = scroll_amt.value
+    amt = amt_scrolled.value
+    sval = step.value
+
+    if sa == 0:
+        return
+
+    print(sa)
+
+    #step = int(sa/abs(sa))
+    #amt_scrolled = 0
+
+    orig_sa = sa+0.0
+
+    while amt < abs(sa):
+        sleep(.005)
+
+        multiplier = 1 - (float(amt+1) / sa)
+        speed = 4*multiplier*sval#step
+        event = CGEventCreateScrollWheelEvent(None, 0, 1, speed)
+        CGEventPost(kCGHIDEventTap, event)
+
+        amt += 1
+        if sa != orig_sa:
+            print(orig_sa, sa)
+
+    with done.get_lock():
+        done.value = 1
+    return
+
+
+def start_calibration(signum, frame):
+    global calibration_done
+    calibration_done = False
 
 def read_dimensions(signum, frame):
     ''' get the viewport dimensions that were saved to a file by the webserver '''
@@ -67,6 +110,12 @@ def perform_capture():
     T = 3                           # threshold distance that each pupil must have moved less
                                     # than between frames to be considered calibrated
 
+    # scrolling_up = False
+    # scroll_proc = None
+    # done = None
+
+    conn = Client(('localhost', 6000), authkey=b'password')
+    
     cap = cv.VideoCapture(0)
 
     while True:
@@ -75,7 +124,10 @@ def perform_capture():
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         pupils, eyes, face = detect_pupils(gray, ret_eyes=True, ret_face=True, rel_coords=False)
 
-        if not calibration_done:
+        if calibration_done is None:
+            if display:
+                cv.imshow('frame', frame)
+        elif not calibration_done:
             # Calibration is stopped when there are two consecutive frames where
             # the L2 distance of the (x, y) positions that each pupil has moved between
             # frames is smaller than a threshold.
@@ -187,8 +239,9 @@ def perform_capture():
                 p1 = track(tp1, frame, 'pupil')
 
                 if display:
-                    draw_ellipse(frame, (ex, ey, ew//2, eh//2))
+                    #draw_ellipse(frame, (ex, ey, ew//2, eh//2))
                     draw_circle(frame, p1)
+                    #cv.rectangle(frame, (ex, ey), (ex+ew, ey+eh), (0, 0, 255), 2)
 
                 # The bounding box returned from track is of the format:
                 #       (x origin, y origin, x width, y height)
@@ -202,15 +255,18 @@ def perform_capture():
                 p2 = track(tp2, frame, 'pupil')
 
                 if display:
-                    draw_ellipse(frame, (ex, ey, ew//2, eh//2))
+                    #draw_ellipse(frame, (ex, ey, ew//2, eh//2))
                     draw_circle(frame, p2)
+                    #v.rectangle(frame, (ex, ey), (ex+ew, ey+eh), (0, 0, 255), 2)
 
                 new_y2 = (p2[1]+p2[3]/2)#-ey
                 delta_y2 = new_y2-init_y2
 
                 if display:
-                    for p in pupils:
-                        cv.circle(frame, (int(p['x']), int(p['y'])), int(p['r']), (0, 255, 0), 2)
+                    #for p in pupils:
+                    #    cv.circle(frame, (int(p['x']), int(p['y'])), int(p['r']), (0, 255, 0), 2)
+                    cv.circle(frame, (int(p1[0]), int(init_y1)), int(p1[3]/2), (0, 255, 0), 2)
+                    cv.circle(frame, (int(p2[0]), int(init_y2)), int(p2[3]/2), (0, 255, 0), 2)
 
                 # To determine the amount to scroll, take the average
                 # of the two y-deltas and scale it by the viewport height/1000.
@@ -224,8 +280,39 @@ def perform_capture():
                 # correspond to upwards scrolling.
 
                 mean_delta = (delta_y1+delta_y2)/2.
-                scroll_amt = -(mean_delta)/height*1000
-                gui.vscroll(scroll_amt)
+                scroll_amt = -(mean_delta)/height*2000
+                conn.send('scroll:' + str(scroll_amt))
+
+                # now_is_scrolling_up = scroll_amt > 0
+
+                # if (not scroll_proc is None) and (not done is None) and (done.value == 1):
+                #     scroll_proc.join()
+                #     scroll_proc = None
+
+                # if scroll_proc is None:
+                #     scroll_val = mp.Value('f', scroll_amt)
+                #     amt_scrolled = mp.Value('i', 0)
+                #     step = mp.Value('i', 1)
+                #     done = mp.Value('i', 0)
+
+                #     scroll_proc = mp.Process(target=scroll, args=(scroll_val, amt_scrolled, step, done))
+                #     scroll_proc.start()
+
+                # else:
+                #     if now_is_scrolling_up != scrolling_up:
+                #         scrolling_up = now_is_scrolling_up
+
+                #         with amt_scrolled.get_lock():
+                #             with step.get_lock():
+                #                 amt_scrolled.value = 0
+                #                 step.value *= -1
+                    
+                #     else:
+                #         with scroll_val.get_lock():
+                #             scroll_val.value += scroll_amt
+
+                #gui.vscroll(scroll_amt)
+
 
             if display:
                 cv.imshow('frame', frame)
@@ -234,9 +321,18 @@ def perform_capture():
         if key == ord('q'):
             break
 
+    # if not scroll_proc is None:
+    #     scroll_proc.join()
+    conn.send('close')
+    conn.close()
     cv.destroyAllWindows()
     cap.release()
 
 if __name__ == '__main__':
+    _ = subprocess.Popen(['python', 'scroller.py'])
+    sleep(1.0)
+
     signal.signal(signal.SIGUSR1, read_dimensions)
+    signal.signal(signal.SIGUSR2, start_calibration)
+
     perform_capture()
