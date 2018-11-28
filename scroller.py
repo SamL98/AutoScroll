@@ -34,11 +34,11 @@ def scroll_by(scroll_amt):
     _scrolling = True
 
     while amt_scrolled < abs(_scroll_amt):
-        #sleep(.005)
-        sleep(.01)
+        sleep(.005)
+        #sleep(.01)
 
         multiplier = 1 - (float(amt_scrolled+1) / scroll_amt)
-        speed = 3*multiplier*step
+        speed = 4*multiplier*step
         event = CGEventCreateScrollWheelEvent(None, 0, 1, speed)
         CGEventPost(kCGHIDEventTap, event)
 

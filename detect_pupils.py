@@ -148,24 +148,24 @@ if __name__ == '__main__':
 
     im = cv.imread(join('images', 'frame%d.png' % fno))
     im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-    pupils, eyes = detect_pupils(im, ret_eyes=True)
+    pupils, eyes = detect_pupils(im, ret_eyes=True, rel_coords=False)
 
     #end = time()
     #print('Detection took %.4f seconds' % (end-start))
 
-    _, ax = plt.subplots(1)
-    ax.imshow(im, 'gray')
+    # _, ax = plt.subplots(1)
+    # ax.imshow(im, 'gray')
 
-    faces = detect_faces(im)
-    x,y,w,h = faces[0]
+    # faces = detect_faces(im)
+    # x,y,w,h = faces[0]
 
-    for pup in pupils:
-        ax.add_patch(circle(pup['x'], pup['y'], pup['r']))
+    # for pup in pupils:
+    #     ax.add_patch(circle(pup['x'], pup['y'], pup['r']))
 
-    for ex,ey,ew,eh in eyes:
-        #kps = cv.FastFeatureDetector_create().detect(im[ey:ey+eh, ex:ex+ew], None)
-        #ax.scatter([kp.pt[0]+ex for kp in kps], [kp.pt[1]+ey for kp in kps])
+    # for ex,ey,ew,eh in eyes:
+    #     #kps = cv.FastFeatureDetector_create().detect(im[ey:ey+eh, ex:ex+ew], None)
+    #     #ax.scatter([kp.pt[0]+ex for kp in kps], [kp.pt[1]+ey for kp in kps])
 
-        ax.add_patch(rect(ex, ey, ew, eh))
+    #     ax.add_patch(rect(ex, ey, ew, eh))
 
-    plt.show()
+    # plt.show()

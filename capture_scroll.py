@@ -15,20 +15,16 @@
 
 import cv2 as cv
 import numpy as np
-#import pyautogui as gui
+import pyautogui as gui
 import sys
 import signal
 from time import time, sleep
 import json
 from os.path import isfile
 
-from multiprocessing.connection import Client
-import subprocess
-
 from detect_pupils import detect_pupils
 from fps_for_tracking import get_fps
 from tracking import *
-#from scroller import is_scrolling, change_scroll_amt, scroll_by
 
 calibration_done = None    # flag to set to True once the calibration period has elapsed
 display = True               # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
@@ -77,7 +73,7 @@ def perform_capture():
 
     t = .5
 
-    conn = Client(('localhost', 6000), authkey=b'password')
+    #conn = Client(('localhost', 6000), authkey=b'password')
     
     cap = cv.VideoCapture(0)
 
@@ -148,10 +144,10 @@ def perform_capture():
 
                         # The eye tracker takes a tuple defining an ellipse as:
                         #       (x center, y center, x axis length * 2, y axis length * 2)
-                        te1 = init_tracker((ex + ew//2, p1['y'], ew, 2*oy1),
-                                            'csrt', 
-                                            frame, 
-                                            'eye')
+                        # te1 = init_tracker((ex + ew//2, p1['y'], ew, 2*oy1),
+                        #                     'csrt', 
+                        #                     frame, 
+                        #                     'eye')
 
                         # The pupil tracker takes a tuple defining a circle as:
                         #       (x center, y center, radius)
@@ -163,10 +159,10 @@ def perform_capture():
                         ex, _, ew, _ = eyes[1]
                         ex += pad
                         ew -= 2*pad
-                        te2 = init_tracker((ex + ew//2, p1['y'], ew, 2*oy2),
-                                            'csrt', 
-                                            frame, 
-                                            'eye')
+                        # te2 = init_tracker((ex + ew//2, p1['y'], ew, 2*oy2),
+                        #                     'csrt', 
+                        #                     frame, 
+                        #                     'eye')
                         tp2 = init_tracker((p2['x'], p2['y'], p2['r']), 
                                             'csrt', 
                                             frame, 
@@ -198,7 +194,7 @@ def perform_capture():
                 # The len(eyes) check is basically useless, but
                 # len(pupils) ensures that the user is blinking (hopefully).
 
-                ex,ey,ew,eh = track(te1, frame, 'eye')
+                #ex,ey,ew,eh = track(te1, frame, 'eye')
                 p1 = track(tp1, frame, 'pupil')
 
                 if display:
@@ -214,7 +210,7 @@ def perform_capture():
                 new_y1 = (p1[1]+p1[3]/2)#-ey
                 delta_y1 = new_y1-init_y1
 
-                ex,ey,ew,eh = track(te2, frame, 'eye')
+                #ex,ey,ew,eh = track(te2, frame, 'eye')
                 p2 = track(tp2, frame, 'pupil')
 
                 if display:
@@ -243,14 +239,14 @@ def perform_capture():
                 # correspond to upwards scrolling.
 
                 mean_delta = (delta_y1+delta_y2)/2.
-                scroll_amt = -(mean_delta)/height*2000
+                scroll_amt = -(mean_delta)/height*1000
 
-                if abs(scroll_amt) > t:
-                    if scroll_amt > 0:
-                        scroll_amt *= 2
-                    conn.send('scroll:' + str(scroll_amt))
+                # if abs(scroll_amt) > t:
+                #     if scroll_amt > 0:
+                #         scroll_amt *= 10
+                #     conn.send('scroll:' + str(scroll_amt))
 
-                #gui.vscroll(scroll_amt)
+                gui.vscroll(scroll_amt)
 
 
             if display:
@@ -260,15 +256,15 @@ def perform_capture():
         if key == ord('q'):
             break
 
-    conn.send('close')
-    conn.close()
+    # conn.send('close')
+    # conn.close()
 
     cv.destroyAllWindows()
     cap.release()
 
 if __name__ == '__main__':
-    _ = subprocess.Popen(['python', 'scroller.py'])
-    sleep(1.0)
+    # _ = subprocess.Popen(['python', 'scroller.py'])
+    # sleep(1.0)
 
     signal.signal(signal.SIGUSR1, read_dimensions)
     signal.signal(signal.SIGUSR2, start_calibration)

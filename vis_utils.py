@@ -1,8 +1,8 @@
 from matplotlib.patches import Circle, Rectangle, Ellipse
 import matplotlib.pyplot as plt
 
-def circle(x, y, r):
-    return Circle((x, y), r, edgecolor='r', facecolor='None')
+def circle(x, y, r, c='r'):
+    return Circle((x, y), r, edgecolor=c, facecolor='None')
 
 def ellipse(x, y, w, h, t):
     return Ellipse((x, y), w, h, angle=t)
