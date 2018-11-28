@@ -15,7 +15,6 @@
 
 import cv2 as cv
 import numpy as np
-import pyautogui as gui
 import sys
 import signal
 from time import time, sleep
@@ -27,6 +26,12 @@ from fps_for_tracking import get_fps
 from tracking import *
 
 smooth_scrolling = False
+if smooth_scrolling:
+    import subprocess
+    from multiprocessing.connection import Client
+else:
+    import pyautogui as gui
+
 calibration_done = None    # flag to set to True once the calibration period has elapsed
 display = True               # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
 height, width = None, None  # the height and width of the window that the web interface is in 
@@ -178,13 +183,10 @@ def perform_capture():
                 # The len(eyes) check is basically useless, but
                 # len(pupils) ensures that the user is blinking (hopefully).
 
-                #ex,ey,ew,eh = track(te1, frame, 'eye')
                 p1 = track(tp1, frame, 'pupil')
 
                 if display:
-                    #draw_ellipse(frame, (ex, ey, ew//2, eh//2))
                     draw_circle(frame, p1)
-                    #cv.rectangle(frame, (ex, ey), (ex+ew, ey+eh), (0, 0, 255), 2)
 
                 # The bounding box returned from track is of the format:
                 #       (x origin, y origin, x width, y height)
@@ -194,20 +196,15 @@ def perform_capture():
                 new_y1 = (p1[1]+p1[3]/2)#-ey
                 delta_y1 = new_y1-init_y1
 
-                #ex,ey,ew,eh = track(te2, frame, 'eye')
                 p2 = track(tp2, frame, 'pupil')
 
                 if display:
-                    #draw_ellipse(frame, (ex, ey, ew//2, eh//2))
                     draw_circle(frame, p2)
-                    #v.rectangle(frame, (ex, ey), (ex+ew, ey+eh), (0, 0, 255), 2)
 
                 new_y2 = (p2[1]+p2[3]/2)#-ey
                 delta_y2 = new_y2-init_y2
 
                 if display:
-                    #for p in pupils:
-                    #    cv.circle(frame, (int(p['x']), int(p['y'])), int(p['r']), (0, 255, 0), 2)
                     cv.circle(frame, (int(p1[0]), int(init_y1)), int(p1[3]/2), (0, 255, 0), 2)
                     cv.circle(frame, (int(p2[0]), int(init_y2)), int(p2[3]/2), (0, 255, 0), 2)
 
@@ -225,12 +222,13 @@ def perform_capture():
                 mean_delta = (delta_y1+delta_y2)/2.
                 scroll_amt = -(mean_delta)/height*1000
 
-                # if abs(scroll_amt) > t:
-                #     if scroll_amt > 0:
-                #         scroll_amt *= 10
-                #     conn.send('scroll:' + str(scroll_amt))
-
-                gui.vscroll(scroll_amt)
+                if smooth_scrolling:
+                    if abs(scroll_amt) > t:
+                        if scroll_amt > 0:
+                            scroll_amt *= 10
+                        conn.send('scroll:' + str(scroll_amt))
+                else:
+                    gui.vscroll(scroll_amt)
 
 
             if display:
@@ -240,15 +238,17 @@ def perform_capture():
         if key == ord('q'):
             break
 
-    # conn.send('close')
-    # conn.close()
+    if smooth_scrolling:
+        conn.send('close')
+        conn.close()
 
     cv.destroyAllWindows()
     cap.release()
 
 if __name__ == '__main__':
-    # _ = subprocess.Popen(['python', 'scroller.py'])
-    # sleep(1.0)
+    if smooth_scrolling:
+        _ = subprocess.Popen(['python', 'scroller.py'])
+        sleep(1.0)
 
     signal.signal(signal.SIGUSR1, read_dimensions)
     signal.signal(signal.SIGUSR2, start_calibration)
