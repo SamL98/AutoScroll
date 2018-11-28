@@ -26,6 +26,7 @@ from detect_pupils import detect_pupils
 from fps_for_tracking import get_fps
 from tracking import *
 
+smooth_scrolling = False
 calibration_done = None    # flag to set to True once the calibration period has elapsed
 display = True               # flag to set to True if you want to see the detection/tracking, otherwise it is headlessly
 height, width = None, None  # the height and width of the window that the web interface is in 
@@ -73,7 +74,8 @@ def perform_capture():
 
     t = .5
 
-    #conn = Client(('localhost', 6000), authkey=b'password')
+    if smooth_scrolling:
+        conn = Client(('localhost', 6000), authkey=b'password')
     
     cap = cv.VideoCapture(0)
 
@@ -138,17 +140,6 @@ def perform_capture():
                         oy2 = p2['r']+pad   #          so that the corners and other junk is not included.
                                             # This is a very crude method but it seem to works OK.
 
-                        ex, _, ew, _ = eyes[0]
-                        ex += pad
-                        ew -= 2*pad
-
-                        # The eye tracker takes a tuple defining an ellipse as:
-                        #       (x center, y center, x axis length * 2, y axis length * 2)
-                        # te1 = init_tracker((ex + ew//2, p1['y'], ew, 2*oy1),
-                        #                     'csrt', 
-                        #                     frame, 
-                        #                     'eye')
-
                         # The pupil tracker takes a tuple defining a circle as:
                         #       (x center, y center, radius)
                         tp1 = init_tracker((p1['x'], p1['y'], p1['r']), 
@@ -156,13 +147,6 @@ def perform_capture():
                                             frame, 
                                             'pupil')
 
-                        ex, _, ew, _ = eyes[1]
-                        ex += pad
-                        ew -= 2*pad
-                        # te2 = init_tracker((ex + ew//2, p1['y'], ew, 2*oy2),
-                        #                     'csrt', 
-                        #                     frame, 
-                        #                     'eye')
                         tp2 = init_tracker((p2['x'], p2['y'], p2['r']), 
                                             'csrt', 
                                             frame, 
